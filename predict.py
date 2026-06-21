@@ -9,9 +9,20 @@ from sklearn.ensemble import RandomForestClassifier
 # ============================================================
 
 yesterdays_results = [
+    {'home':'Mexico','away':'South Korea','home_score':1,'away_score':0},
+    {'home':'United States','away':'Australia','home_score':2,'away_score':0},
+    {'home':'Scotland','away':'Morocco','home_score':0,'away_score':1},
+    {'home':'Brazil','away':'Haiti','home_score':3,'away_score':0},
+    {'home':'Turkey','away':'Paraguay','home_score':0,'away_score':1},
+    {'home':'Netherlands','away':'Sweden','home_score':5,'away_score':1},
+    {'home':'Germany','away':'Ivory Coast','home_score':2,'away_score':1},
+    {'home':'Ecuador','away':'Curaçao','home_score':0,'away_score':0},
 ]
 
 todays_matches = [
+    ('Spain', 'Saudi Arabia'),
+    ('Belgium', 'Iran'),
+    ('Uruguay', 'Cape Verde Islands'),
 ]
 
 # ============================================================
