@@ -69,12 +69,14 @@ data2 = r2.json()
 
 todays_matches = []
 for m in data2.get("matches", []):
+    # Skip only if finished AND score is final
     if m["status"] == "FINISHED":
         continue
+    # Include SCHEDULED, TIMED, IN_PLAY, PAUSED
     home = m["homeTeam"]["name"]
     away = m["awayTeam"]["name"]
     todays_matches.append((home, away))
-    print(f"  ⚽ {home} vs {away}")
+    print(f"  ⚽ {home} vs {away} | status: {m['status']}")
 
 print(f"Found {len(todays_matches)} fixtures for today")
 
