@@ -6,7 +6,7 @@ from github import Github
 # CREDENTIALS
 # ============================================================
 FOOTBALL_API_KEY = os.environ['FOOTBALL_API_KEY']
-GITHUB_TOKEN     = os.environ['GITHUB_TOKEN']
+GITHUB_TOKEN     = os.environ['PAT_TOKEN']
 REPO_NAME        = "NeerajGH2026/fifa-wc2026-predictions"
 
 # ============================================================
