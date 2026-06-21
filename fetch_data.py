@@ -111,4 +111,32 @@ results_lines += "]"
 
 # Build new todays_matches block
 matches_lines = "todays_matches = [\n"
-for
+for home, away in todays_matches:
+    matches_lines += f"    ('{home}', '{away}'),\n"
+matches_lines += "]"
+
+# Replace in file using regex
+content = re.sub(
+    r"yesterdays_results = \[.*?\]",
+    results_lines,
+    content,
+    flags=re.DOTALL
+)
+content = re.sub(
+    r"todays_matches = \[.*?\]",
+    matches_lines,
+    content,
+    flags=re.DOTALL
+)
+
+# Commit back to GitHub
+repo.update_file(
+    "predict.py",
+    f"🤖 Auto-update: results {yesterday} + fixtures {today}",
+    content,
+    file.sha
+)
+
+print("✅ predict.py updated successfully!")
+print(f"  Yesterday: {len(yesterdays_results)} results")
+print(f"  Today: {len(todays_matches)} fixtures")
