@@ -29,6 +29,9 @@ KAGGLE_KEY       = os.environ['KAGGLE_KEY']
 
 FRIEND_EMAILS = [
     "neerajgtripathi@gmail.com",
+    "tripathianushri0@gmail.com",
+    "avanichicago@gmail.com",
+    "mail2swatitripathi@gmail.com"
     # add more friends here
 ]
 
