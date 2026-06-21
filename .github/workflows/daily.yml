@@ -3,7 +3,6 @@ name: Daily WC2026 Predictions
 on:
   schedule:
     - cron: '0 14 * * *'   # 9 AM CST = 14:00 UTC
-    - cron: '0 15 * * *'   # 10 AM CST = 15:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -25,24 +24,3 @@ jobs:
           FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
           PAT_TOKEN:        ${{ secrets.PAT_TOKEN }}
         run: python fetch_data.py
-
-  predict:
-    needs: fetch-data
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run predictions & send email
-        env:
-          GMAIL_PASSWORD:  ${{ secrets.GMAIL_PASSWORD }}
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-          KAGGLE_KEY:      ${{ secrets.KAGGLE_KEY }}
-        run: python predict.py
