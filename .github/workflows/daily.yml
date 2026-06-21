@@ -1,0 +1,27 @@
+name: Daily WC2026 Predictions
+
+on:
+  schedule:
+    - cron: '0 15 * * *'  # 10 AM CST = 15:00 UTC
+  workflow_dispatch:        # allows manual trigger anytime
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run predictions & send email
+        env:
+          GMAIL_PASSWORD:   ${{ secrets.GMAIL_PASSWORD }}
+          KAGGLE_USERNAME:  ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY:       ${{ secrets.KAGGLE_KEY }}
+        run: python predict.py
