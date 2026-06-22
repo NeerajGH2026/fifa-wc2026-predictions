@@ -27,17 +27,21 @@ print(f"📅 Fetching WC results from {two_ago} to {yesterday}...")
 r = requests.get(
     f"{BASE}/competitions/WC/matches",
     headers=headers,
-params={
+    params={
         "dateFrom": str(two_ago),
-        "dateTo":   str(yesterday),
+        "dateTo":   str(today),
         "status":   "FINISHED"
-        }
+    }
 )
 print(f"API status: {r.status_code}")
 data = r.json()
 
 yesterdays_results = []
 for m in data.get("matches", []):
+    match_date = m["utcDate"][:10]
+    match_hour = int(m["utcDate"][11:13])
+    if match_date == str(today) and match_hour >= 10:
+        continue
     home       = m["homeTeam"]["name"]
     away       = m["awayTeam"]["name"]
     home_score = m["score"]["fullTime"]["home"]
@@ -50,6 +54,8 @@ for m in data.get("matches", []):
             "away_score": int(away_score)
         })
         print(f"  ✅ {home} {home_score}-{away_score} {away}")
+
+print(f"Found {len(yesterdays_results)} finished results")
 
 print(f"Found {len(yesterdays_results)} finished results")
 
