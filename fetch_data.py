@@ -28,10 +28,10 @@ r = requests.get(
     f"{BASE}/competitions/WC/matches",
     headers=headers,
 params={
-    "dateFrom": str(today),
-    "dateTo":   str(tomorrow)
+        "dateFrom": str(two_ago),
+        "dateTo":   str(yesterday),
         "status":   "FINISHED"
-    }
+        }
 )
 print(f"API status: {r.status_code}")
 data = r.json()
