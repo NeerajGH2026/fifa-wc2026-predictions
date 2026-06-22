@@ -15,6 +15,7 @@ REPO_NAME        = "NeerajGH2026/fifa-wc2026-predictions"
 today      = datetime.utcnow().date()
 yesterday  = today - timedelta(days=1)
 two_ago    = today - timedelta(days=2)
+tomorrow   = today + timedelta(days=1)
 
 headers = {"X-Auth-Token": FOOTBALL_API_KEY}
 BASE    = "https://api.football-data.org/v4"
@@ -61,7 +62,7 @@ r2 = requests.get(
     headers=headers,
     params={
         "dateFrom": str(today),
-        "dateTo":   str(today)
+        "dateTo":   str(tomorrow)
     }
 )
 print(f"API status: {r2.status_code}")
