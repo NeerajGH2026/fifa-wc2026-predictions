@@ -29,7 +29,7 @@ r = requests.get(
     headers=headers,
 params={
     "dateFrom": str(today),
-    "dateTo":   str(today + timedelta(days=1))
+    "dateTo":   str(tomorrow)
         "status":   "FINISHED"
     }
 )
