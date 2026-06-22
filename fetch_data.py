@@ -26,9 +26,9 @@ print(f"📅 Fetching WC results from {two_ago} to {yesterday}...")
 r = requests.get(
     f"{BASE}/competitions/WC/matches",
     headers=headers,
-    params={
-        "dateFrom": str(two_ago),
-        "dateTo":   str(today),
+params={
+    "dateFrom": str(today),
+    "dateTo":   str(today + timedelta(days=1))
         "status":   "FINISHED"
     }
 )
