@@ -18,6 +18,7 @@ yesterdays_results = [
     {'home':'Spain','away':'Saudi Arabia','home_score':4,'away_score':0},
     {'home':'Belgium','away':'Iran','home_score':0,'away_score':0},
     {'home':'Uruguay','away':'Cape Verde Islands','home_score':2,'away_score':2},
+    {'home':'New Zealand','away':'Egypt','home_score':1,'away_score':3},
 ]
 
 todays_matches = [
