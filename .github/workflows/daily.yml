@@ -2,7 +2,7 @@ name: Daily WC2026 Predictions
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # 6 AM CST = 12:00 UTC
+    - cron: '0 11 * * *'   # 6 AM CDT = 11:00 UTC
   workflow_dispatch:
 
 jobs:
