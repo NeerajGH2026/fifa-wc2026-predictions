@@ -70,19 +70,27 @@ data2 = r2.json()
 
 todays_matches = []
 for m in data2.get("matches", []):
-    # Only include matches scheduled for today (UTC date)
-    match_date = m["utcDate"][:10]
-    # Include today AND tomorrow's UTC dates (captures late US timezone games)
-    if match_date not in [str(today), str(tomorrow)]:
-        continue
+    match_utc = m["utcDate"]  # e.g. "2026-06-23T03:00:00Z"
+    match_date = match_utc[:10]
+    match_hour = int(match_utc[11:13])
+    
+    # Include today's UTC matches
+    # Include tomorrow's UTC matches only if before 10:00 UTC
+    # (captures late US CDT games stored as next UTC day)
+    if match_date == str(today):
+        pass  # always include
+    elif match_date == str(tomorrow) and match_hour < 10:
+        pass  # late US games stored as next UTC day
+    else:
+        continue  # skip actual next day matches
+    
     if m["status"] == "FINISHED":
         continue
+    
     home = m["homeTeam"]["name"]
     away = m["awayTeam"]["name"]
-    # Only include if match time falls within today CDT window
-    # Matches after midnight UTC = late night US games = still today
     todays_matches.append((home, away))
-    print(f"  ⚽ {home} vs {away} | date: {match_date} | status: {m['status']}")
+    print(f"  ⚽ {home} vs {away} | {match_utc}")
 
 print(f"Found {len(todays_matches)} fixtures for today")
 
