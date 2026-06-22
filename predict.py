@@ -25,9 +25,6 @@ todays_matches = [
     ('France', 'Iraq'),
     ('Norway', 'Senegal'),
     ('Jordan', 'Algeria'),
-    ('Portugal', 'Uzbekistan'),
-    ('England', 'Ghana'),
-    ('Panama', 'Croatia'),
 ]
 
 # ============================================================
