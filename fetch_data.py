@@ -1,164 +1,118 @@
-import os, re, requests
-from datetime import datetime, timedelta
-from github import Github
+import requests
+import json
+import os
+import re
+from datetime import datetime, timedelta, timezone
 
-# ============================================================
-# CREDENTIALS
-# ============================================================
-FOOTBALL_API_KEY = os.environ['FOOTBALL_API_KEY']
-GITHUB_TOKEN     = os.environ['PAT_TOKEN']
-REPO_NAME        = "NeerajGH2026/fifa-wc2026-predictions"
+# ─── API CONFIG ──────────────────────────────────────────────────────────────
+API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
+HEADERS = {"X-Auth-Token": API_KEY}
+BASE_URL = "https://api.football-data.org/v4/competitions/WC/matches"
 
-# ============================================================
-# DATES
-# ============================================================
-today      = datetime.utcnow().date()
-yesterday  = today - timedelta(days=1)
-two_ago    = today - timedelta(days=2)
-tomorrow   = today + timedelta(days=1)
+# ─── DATE SETUP (all in UTC) ──────────────────────────────────────────────────
+now_utc      = datetime.now(timezone.utc)
+today_utc    = now_utc.date()
+yesterday_utc = today_utc - timedelta(days=1)
+two_days_ago  = today_utc - timedelta(days=2)
+tomorrow_utc  = today_utc + timedelta(days=1)
 
-headers = {"X-Auth-Token": FOOTBALL_API_KEY}
-BASE    = "https://api.football-data.org/v4"
+print(f"🕐 Script running at: {now_utc.strftime('%Y-%m-%d %H:%M UTC')}")
+print(f"📅 today_utc={today_utc}  yesterday_utc={yesterday_utc}  two_days_ago={two_days_ago}")
 
-# ============================================================
-# FETCH YESTERDAY'S WC RESULTS (wider window for UTC offset)
-# ============================================================
-print(f"📅 Fetching WC results from {two_ago} to {yesterday}...")
-r = requests.get(
-    f"{BASE}/competitions/WC/matches",
-    headers=headers,
-    params={
-        "dateFrom": str(two_ago),
-        "dateTo":   str(today),
-        "status":   "FINISHED"
-    }
-)
-print(f"API status: {r.status_code}")
-data = r.json()
+# ─── FETCH FINISHED RESULTS (2-day window to catch late-CDT matches) ─────────
+# Late CDT matches (e.g. 10 PM CDT = 3 AM next day UTC) get stored under
+# the NEXT UTC date, so we look back 2 days instead of just 1.
+results_params = {
+    "dateFrom": str(two_days_ago),
+    "dateTo":   str(yesterday_utc),   # never include today — avoids in-progress matches
+    "status":   "FINISHED"
+}
+print(f"\n📡 Fetching results: {two_days_ago} → {yesterday_utc} ...")
+results_resp = requests.get(BASE_URL, headers=HEADERS, params=results_params)
+results_data = results_resp.json()
 
-yesterdays_results = []
-for m in data.get("matches", []):
-    match_date = m["utcDate"][:10]
-    match_hour = int(m["utcDate"][11:13])
-    if match_date == str(today) and match_hour >= 10:
-        continue
-    home       = m["homeTeam"]["name"]
-    away       = m["awayTeam"]["name"]
-    home_score = m["score"]["fullTime"]["home"]
-    away_score = m["score"]["fullTime"]["away"]
-    if home_score is not None and away_score is not None:
-        yesterdays_results.append({
-            "home":       home,
-            "away":       away,
-            "home_score": int(home_score),
-            "away_score": int(away_score)
-        })
-        print(f"  ✅ {home} {home_score}-{away_score} {away}")
+finished_matches = results_data.get("matches", [])
+print(f"   Found {len(finished_matches)} finished matches")
 
-print(f"Found {len(yesterdays_results)} finished results")
+# ─── FETCH TODAY'S SCHEDULED FIXTURES ────────────────────────────────────────
+# We fetch today + tomorrow to handle edge-case timezone offsets,
+# then FILTER to only matches that haven't kicked off yet (utcDate > now).
+fixtures_params = {
+    "dateFrom": str(today_utc),
+    "dateTo":   str(tomorrow_utc),
+    "status":   "SCHEDULED"
+}
+print(f"\n📡 Fetching fixtures: {today_utc} → {tomorrow_utc} ...")
+fixtures_resp = requests.get(BASE_URL, headers=HEADERS, params=fixtures_params)
+fixtures_data = fixtures_resp.json()
 
-print(f"Found {len(yesterdays_results)} finished results")
+all_scheduled = fixtures_data.get("matches", [])
+print(f"   Found {len(all_scheduled)} scheduled matches before time filter")
 
-# ============================================================
-# FETCH TODAY'S WC FIXTURES (all statuses)
-# ============================================================
-print(f"\n📅 Fetching WC fixtures for {today}...")
-r2 = requests.get(
-    f"{BASE}/competitions/WC/matches",
-    headers=headers,
-    params={
-        "dateFrom": str(today),
-        "dateTo":   str(tomorrow)
-    }
-)
-print(f"API status: {r2.status_code}")
-data2 = r2.json()
+# Keep only matches that haven't kicked off yet
+# This prevents yesterday's late matches (stored as today UTC) from leaking in
+upcoming_fixtures = [
+    m for m in all_scheduled
+    if m.get("utcDate", "") > now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+]
+print(f"   After time filter (kick-off > now): {len(upcoming_fixtures)} matches")
 
-todays_matches = []
-for m in data2.get("matches", []):
-    match_utc = m["utcDate"]  # e.g. "2026-06-23T03:00:00Z"
-    match_date = match_utc[:10]
-    match_hour = int(match_utc[11:13])
-    
-    # Include today's UTC matches
-    # Include tomorrow's UTC matches only if before 10:00 UTC
-    # (captures late US CDT games stored as next UTC day)
-    if match_date == str(today):
-        pass  # always include
-    elif match_date == str(tomorrow) and match_hour < 10:
-        pass  # late US games stored as next UTC day
-    else:
-        continue  # skip actual next day matches
-    
-    if m["status"] == "FINISHED":
-        continue
-    
+# ─── BUILD RESULTS LIST ───────────────────────────────────────────────────────
+results_lines = []
+for m in finished_matches:
     home = m["homeTeam"]["name"]
     away = m["awayTeam"]["name"]
-    todays_matches.append((home, away))
-    print(f"  ⚽ {home} vs {away} | {match_utc}")
+    hg   = m["score"]["fullTime"]["home"]
+    ag   = m["score"]["fullTime"]["away"]
+    if hg is None or ag is None:
+        continue
+    if hg > ag:
+        winner = home
+    elif ag > hg:
+        winner = away
+    else:
+        winner = "Draw"
+    results_lines.append(f"{home} {hg}-{ag} {away} -> {winner}")
 
-print(f"Found {len(todays_matches)} fixtures for today")
+# ─── BUILD FIXTURES LIST ──────────────────────────────────────────────────────
+fixtures_lines = []
+for m in upcoming_fixtures:
+    home = m["homeTeam"]["name"]
+    away = m["awayTeam"]["name"]
+    kick = m.get("utcDate", "")
+    fixtures_lines.append(f"{home} vs {away}  # {kick}")
 
-# ============================================================
-# DEBUG — print raw API response if nothing found
-# ============================================================
-if len(yesterdays_results) == 0:
-    print("\n⚠️ No results found — raw API sample:")
-    matches = data.get("matches", [])
-    for m in matches[:3]:
-        print(f"  {m['homeTeam']['name']} vs {m['awayTeam']['name']} | status: {m['status']} | date: {m['utcDate']}")
+# ─── SAFETY CHECK ─────────────────────────────────────────────────────────────
+print(f"\n✅ Results to train on ({len(results_lines)}):")
+for r in results_lines:
+    print(f"   {r}")
 
-if len(todays_matches) == 0:
-    print("\n⚠️ No fixtures found — raw API sample:")
-    matches2 = data2.get("matches", [])
-    for m in matches2[:3]:
-        print(f"  {m['homeTeam']['name']} vs {m['awayTeam']['name']} | status: {m['status']} | date: {m['utcDate']}")
+print(f"\n⚽ Fixtures to predict ({len(fixtures_lines)}):")
+for f in fixtures_lines:
+    print(f"   {f}")
 
-# ============================================================
-# UPDATE predict.py ON GITHUB
-# ============================================================
-print("\n📝 Updating predict.py on GitHub...")
+if not fixtures_lines:
+    print("\n⚠️  WARNING: No fixtures found for today. Check API or date logic.")
 
-g    = Github(GITHUB_TOKEN)
-repo = g.get_repo(REPO_NAME)
-file = repo.get_contents("predict.py")
-content = file.decoded_content.decode("utf-8")
+# ─── WRITE predict.py ─────────────────────────────────────────────────────────
+results_block  = "\n".join([f'    "{r}",' for r in results_lines])
+fixtures_block = "\n".join([f'    "{f}",' for f in fixtures_lines])
 
-# Build new yesterdays_results block
-results_lines = "yesterdays_results = [\n"
-for r in yesterdays_results:
-    results_lines += f"    {{'home':'{r['home']}','away':'{r['away']}','home_score':{r['home_score']},'away_score':{r['away_score']}}},\n"
-results_lines += "]"
+predict_py = f'''# Auto-generated by fetch_data.py on {now_utc.strftime("%Y-%m-%d %H:%M UTC")}
+# today_utc={today_utc}  |  CDT offset = UTC-5
 
-# Build new todays_matches block
-matches_lines = "todays_matches = [\n"
-for home, away in todays_matches:
-    matches_lines += f"    ('{home}', '{away}'),\n"
-matches_lines += "]"
+YESTERDAY_RESULTS = [
+{results_block}
+]
 
-# Replace in file using regex
-content = re.sub(
-    r"yesterdays_results = \[.*?\]",
-    results_lines,
-    content,
-    flags=re.DOTALL
-)
-content = re.sub(
-    r"todays_matches = \[.*?\]",
-    matches_lines,
-    content,
-    flags=re.DOTALL
-)
+TODAY_MATCHES = [
+{fixtures_block}
+]
+'''
 
-# Commit back to GitHub
-repo.update_file(
-    "predict.py",
-    f"🤖 Auto-update: results {yesterday} + fixtures {today}",
-    content,
-    file.sha
-)
+# Write locally (GitHub Actions will commit this file)
+with open("predict.py", "w") as f:
+    f.write(predict_py)
 
-print("✅ predict.py updated successfully!")
-print(f"  Yesterday: {len(yesterdays_results)} results")
-print(f"  Today: {len(todays_matches)} fixtures")
+print(f"\n✅ predict.py written successfully.")
+print(f"   {len(results_lines)} results  |  {len(fixtures_lines)} fixtures")
