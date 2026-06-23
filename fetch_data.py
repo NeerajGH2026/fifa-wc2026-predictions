@@ -39,8 +39,7 @@ print(f"   Found {len(finished_matches)} finished matches")
 # then FILTER to only matches that haven't kicked off yet (utcDate > now).
 fixtures_params = {
     "dateFrom": str(today_utc),
-    "dateTo":   str(tomorrow_utc),
-    "status":   "SCHEDULED"
+    "dateTo":   str(today_utc),
 }
 print(f"\n📡 Fetching fixtures: {today_utc} → {tomorrow_utc} ...")
 fixtures_resp = requests.get(BASE_URL, headers=HEADERS, params=fixtures_params)
@@ -51,11 +50,17 @@ print(f"   Found {len(all_scheduled)} scheduled matches before time filter")
 
 # Keep only matches that haven't kicked off yet
 # This prevents yesterday's late matches (stored as today UTC) from leaking in
-upcoming_fixtures = [
-    m for m in all_scheduled
-    if m.get("utcDate", "") > now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-]
-print(f"   After time filter (kick-off > now): {len(upcoming_fixtures)} matches")
+upcoming_fixtures = []
+for m in all_scheduled:
+    utc_date_str = m.get("utcDate", "")
+    if not utc_date_str:
+        continue
+    match_dt     = datetime.fromisoformat(utc_date_str.replace("Z", "+00:00"))
+    match_date   = match_dt.date()
+    match_status = m.get("status", "")
+    if match_date == today_utc and match_status in ("SCHEDULED", "TIMED"):
+        upcoming_fixtures.append(m)
+print(f"   After date+status filter: {len(upcoming_fixtures)} matches")
 
 # ─── BUILD RESULTS LIST ───────────────────────────────────────────────────────
 results_lines = []
