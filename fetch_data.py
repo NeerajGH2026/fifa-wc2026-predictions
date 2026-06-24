@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 # ─── API CONFIG ──────────────────────────────────────────────────────────────
-API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
+API_KEY = os.environ.get("FOOTBALL_API_KEY", "")
 HEADERS = {"X-Auth-Token": API_KEY}
 BASE_URL = "https://api.football-data.org/v4/competitions/WC/matches"
 
